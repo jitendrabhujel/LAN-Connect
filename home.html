@@ -1,0 +1,103 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.min.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <div class="header-bar">
+        <h3>Logged in as: {{ user.username }}</h3>
+        <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        <span id="notification" class="notification" style="display: none; margin-left: 10px; color: #ff4444;">New message!</span>
+    </div>
+    <input type="hidden" id="logged-in-user" value="{{ user.id }}">
+    {% endif %}
+
+    <div class="container-fluid h-100">
+        <div class="row justify-content-center h-100">
+            <!-- Users Section (Left) -->
+            <div class="col-md-4 col-xl-3 chat h-100">
+                <div class="card mb-0 contacts_card h-100">
+                    <div class="card-header">
+                        <h4>Chats</h4>
+                    </div>
+                    <div class="card-body contacts_body h-100">
+                        <ul class="contacts">
+                            {% for user_status in users_with_status %}
+                            <li class="contact-li {% if forloop.first and Threads|length == 0 %}active{% endif %}" user-id="{{ user_status.user.id }}" style="cursor: pointer; position: relative;">
+                                <div class="d-flex bd-highlight">
+                                    <div class="img_cont">
+                                        <img src="https://static.turbosquid.com/Preview/001292/481/WV/_D" class="rounded-circle user_img">
+                                        <span class="online_icon {% if user_status.is_active %}online{% else %}offline{% endif %}"></span>
+                                    </div>
+                                    <div class="user_info">
+                                        <span>{{ user_status.user.username }}</span>
+                                        <p>{{ user_status.user.username }} is {% if user_status.is_active %}online{% else %}offline{% endif %}</p>
+                                    </div>
+                                </div>
+                                <span class="unread-count" style="position: absolute; top: 5px; right: 5px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; text-align: center; display: none;">0</span>
+                            </li>
+                            {% empty %}
+                            <li>No users available</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="card-footer"></div>
+                </div>
+            </div>
+            <!-- Messages Section (Right) -->
+            <div class="col-md-8 col-xl-9 chat h-100">
+                <div class="card h-100 message-card">
+                    <!-- Single message wrapper for all users -->
+                    <div class="messages-wrapper is_active" id="message-wrapper" chat-id="chat_new" other-user-id="">
+                        <div class="card-header msg_head">
+                            <div class="d-flex bd-highlight">
+                                <div class="img_cont">
+                                    <img src="https://static.turbosquid.com/Preview/001292/481/WV/_D" class="rounded-circle user_img">
+                                    <span class="online_icon"></span>
+                                </div>
+                                <div class="user_info">
+                                    <span>Select a user to start chatting</span>
+                                    <p>0 messages</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body msg_card_body">
+                            <!-- Messages will be appended here dynamically -->
+                        </div>
+                        <div class="card-footer message-footer">
+                            <form id="send-message-form" enctype="multipart/form-data">
+                                <div class="input-group">
+                                    <div class="input-group-append">
+                                        <label for="file-input" class="input-group-text attach_btn"><i class="fas fa-paperclip"></i></label>
+                                        <input type="file" id="file-input" style="display: none;" multiple>
+                                    </div>
+                                    <input type="text" name="message" id="input-message" class="form-control type_msg" placeholder="Type your message...">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-secondary send_btn" type="submit">
+                                            <span class="input-group-text send_btn">
+                                                <i class="fas fa-location-arrow"></i>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var currentTime = new Date().toLocaleString();
+    </script>
+    <script src="{% static 'js/home.js' %}"></script>
+</body>
+</html>

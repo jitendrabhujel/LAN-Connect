@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .container {
+            position: relative;
+            width: 400px;
+            perspective: 1000px;
+        }
+        
+        .form-container {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform-style: preserve-3d;
+            transition: all 0.5s ease;
+        }
+        
+        h3 {
+            color: #fff;
+            font-size: 32px;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+        }
+        
+        .input-group {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .input-group input:focus {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+        }
+        
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 18px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #00bfff, #0066ff);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 5px 15px rgba(0, 102, 255, 0.3);
+        }
+        
+        .btn:hover {
+            background: linear-gradient(45deg, #0066ff, #00bfff);
+            box-shadow: 0 8px 20px rgba(0, 102, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .links {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+        
+        .links a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .links a:hover {
+            color: #00bfff;
+            text-shadow: 0 0 5px rgba(0, 191, 255, 0.5);
+        }
+        
+        .neon-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 191, 255, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
+            z-index: -1;
+            animation: pulse 4s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.3; }
+            50% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(0.8); opacity: 0.3; }
+        }
+        
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            z-index: 1000;
+            text-align: center;
+            opacity: 1;
+            transition: opacity 0.5s;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+    <script>
+        function showPopup(message) {
+            const popup = document.createElement('div');
+            popup.innerText = message;
+            popup.className = 'popup';
+            
+            document.body.appendChild(popup);
+            
+            setTimeout(() => {
+                popup.style.opacity = '0';
+                popup.addEventListener('transitionend', () => popup.remove());
+            }, 3000);
+        }
+    </script>
+</head>
+<body>
+    {% if messages %}
+    <script>
+        {% for message in messages %}
+        showPopup("{{ message }}");
+        {% endfor %}
+    </script>
+    {% endif %}
+    
+    <div class="neon-glow"></div>
+    
+    <div class="container">
+        <div class="form-container">
+            <form method="post">
+                {% csrf_token %}
+                <h3>Login</h3>
+                
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="username" placeholder="Username" required>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                
+                <button type="submit" class="btn">Login</button>
+                
+                <div class="links">
+                    <a href="{% url 'password_reset' %}">Forgot Password?</a>
+                    <a href="{% url 'signup' %}">Create Account</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

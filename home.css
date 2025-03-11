@@ -1,0 +1,377 @@
+body {
+  background: linear-gradient(to right, #00ffcc, #00cc99);
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  height: 100vh;
+}
+
+.header-bar {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification {
+  font-weight: bold;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.logout-btn {
+  color: white;
+  text-decoration: none;
+  padding: 5px 15px;
+  background: #ff4d4d;
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+.logout-btn:hover {
+  background: #e60000;
+}
+
+.chat {
+  display: flex !important;
+  flex-direction: column;
+  height: calc(100vh - 60px) !important;
+}
+
+.card {
+  border-radius: 15px !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100% !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.message-card {
+  background: #00cc99 !important;
+  border: none !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.contacts_card {
+  background: #1a3c34 !important;
+}
+
+.contacts_body {
+  padding: 0.75rem 0 !important;
+  overflow-y: auto;
+  white-space: nowrap;
+  flex-grow: 1;
+  height: calc(100% - 120px); /* Adjusted to account for header and footer */
+}
+
+/* Fixed message body to prevent overflow */
+.msg_card_body {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  background: #00cc99 !important;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-height: calc(100% - 120px); /* Adjusted to leave space for header and footer */
+}
+
+.card-header {
+  border-radius: 15px 15px 0 0 !important;
+  border-bottom: 0 !important;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white;
+  flex-shrink: 0;
+  height: 60px; /* Fixed height for header */
+}
+
+.card-header h4 {
+  color: white;
+  margin: 0;
+}
+
+.card-footer {
+  border-radius: 0 0 15px 15px !important;
+  border-top: 0 !important;
+  padding: 10px;
+  background: transparent !important;
+  flex-shrink: 0;
+}
+
+/* Fixed message footer at bottom */
+.message-footer {
+  border-radius: 0 0 15px 15px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  height: 60px; /* Fixed height for footer */
+}
+
+.container-fluid {
+  padding: 0 !important;
+  height: 100vh !important;
+}
+
+.row {
+  margin: 0 !important;
+  height: 100% !important;
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.type_msg {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 0 !important;
+  color: white !important;
+  height: 40px !important;
+  border-radius: 20px !important;
+  padding: 0 15px;
+  flex-grow: 1;
+}
+
+.type_msg:focus {
+  box-shadow: none !important;
+  outline: 0px !important;
+}
+
+.attach_btn {
+  border-radius: 20px 0 0 20px !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 0 !important;
+  color: white !important;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.attach_btn:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.send_btn {
+  border-radius: 0 20px 20px 0 !important;
+  background-color: #00cc99 !important;
+  border: 0 !important;
+  color: white !important;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.send_btn:hover {
+  background-color: #00b386 !important;
+}
+
+.contacts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.contacts li {
+  width: 100% !important; /* Fixed missing % */
+  padding: 10px;
+  margin-bottom: 10px !important;
+  border-radius: 10px;
+  transition: background 0.3s;
+  color: white;
+  position: relative;
+}
+
+.contacts li:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.user_img {
+  height: 60px;
+  width: 60px;
+  border: 2px solid #f5f6fa;
+}
+
+.user_img_msg {
+  height: 40px;
+  width: 40px;
+  border: 2px solid #f5f6fa;
+}
+
+.img_cont {
+  position: relative;
+  height: 60px;
+  width: 60px;
+}
+
+.img_cont_msg {
+  height: 40px;
+  width: 40px;
+}
+
+.online_icon {
+  position: absolute;
+  height: 15px;
+  width: 15px;
+  background-color: #4cd137;
+  border-radius: 50%;
+  bottom: 0.2em;
+  right: 0.4em;
+  border: 2px solid white;
+}
+
+.offline {
+  background-color: #c23616 !important;
+}
+
+.user_info {
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-left: 15px;
+}
+
+.user_info span {
+  font-size: 18px;
+  color: white;
+  font-weight: 500;
+}
+
+.user_info p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0;
+}
+
+/* Fixed message container styles to prevent overflow */
+.msg_cotainer {
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-left: 10px;
+  border-radius: 25px;
+  background-color: #82ccdd;
+  padding: 10px 15px;
+  position: relative;
+  max-width: 70%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.msg_cotainer_send {
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-right: 10px;
+  border-radius: 25px;
+  background-color: #78e08f;
+  padding: 10px 15px;
+  position: relative;
+  max-width: 70%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.attachment-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px;
+  background: #ffffff;
+  color: #333;
+  border-radius: 15px;
+  text-decoration: none;
+  font-size: 14px;
+  margin-top: 5px;
+  transition: background 0.3s;
+}
+
+.attachment-btn i {
+  margin-right: 5px;
+}
+
+.attachment-btn:hover {
+  background: #e0e0e0;
+}
+
+.chat-image {
+  border-radius: 10px;
+  max-width: 200px;
+  margin-top: 5px;
+}
+
+.chat-video {
+  border-radius: 10px;
+  max-width: 200px;
+  margin-top: 5px;
+}
+
+/* Fixed the positioning of message timestamps */
+.msg_time {
+  position: relative;
+  display: block;
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  left: auto;
+  bottom: auto;
+}
+
+.msg_time_send {
+  position: relative;
+  display: block;
+  margin-top: 5px;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  right: auto;
+  bottom: auto;
+}
+
+.msg_head {
+  position: relative;
+}
+
+/* Improved message wrapper structure */
+.messages-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 767.98px) {
+  .row {
+    flex-wrap: nowrap !important;
+  }
+  .col-md-4.col-xl-3,
+  .col-md-8.col-xl-9 {
+    flex: 0 0 auto !important;
+    width: 50% !important;
+    max-width: 50% !important;
+  }
+  .contacts_card {
+    margin-bottom: 0 !important;
+  }
+  
+  /* Adjust message container width for small screens */
+  .msg_cotainer, .msg_cotainer_send {
+    max-width: 85%;
+  }
+}
+
+.chat {
+  min-width: 300px !important;
+}
