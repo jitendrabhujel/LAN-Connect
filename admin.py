@@ -28,5 +28,6 @@ class ThreadAdmin(admin.ModelAdmin):
     form = ThreadForm
     class Meta:
         model = Thread
+    fields = ['is_group', 'other_field']  # Ensure 'is_group' is in the form
 
 admin.site.register(Thread, ThreadAdmin)
