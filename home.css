@@ -80,11 +80,11 @@ body {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  background: #00cc99 !important;
+  background: rgba(0, 0, 0, 0.1) !important;
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  max-height: calc(100% - 120px); /* Adjusted to leave space for header and footer */
+  max-height: calc(100% - 120px);
 }
 
 .card-header {
@@ -112,13 +112,9 @@ body {
 
 /* Fixed message footer at bottom */
 .message-footer {
-  border-radius: 0 0 15px 15px !important;
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.1);
   padding: 10px;
-  width: 100%;
-  box-sizing: border-box;
-  flex-shrink: 0;
-  height: 60px; /* Fixed height for footer */
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .container-fluid {
@@ -134,18 +130,16 @@ body {
 }
 
 .type_msg {
-  background-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
   border: 0 !important;
-  color: white !important;
+  color: #333 !important;
   height: 40px !important;
-  border-radius: 20px !important;
-  padding: 0 15px;
-  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .type_msg:focus {
   box-shadow: none !important;
-  outline: 0px !important;
+  background-color: rgba(255, 255, 255, 1) !important;
 }
 
 .attach_btn {
@@ -259,7 +253,7 @@ body {
   margin-top: auto;
   margin-bottom: auto;
   margin-left: 10px;
-  border-radius: 25px;
+  border-radius: 15px;
   background-color: #82ccdd;
   padding: 10px 15px;
   position: relative;
@@ -274,7 +268,7 @@ body {
   margin-top: auto;
   margin-bottom: auto;
   margin-right: 10px;
-  border-radius: 25px;
+  border-radius: 15px;
   background-color: #78e08f;
   padding: 10px 15px;
   position: relative;
@@ -319,25 +313,16 @@ body {
 }
 
 /* Fixed the positioning of message timestamps */
-.msg_time {
+.msg_time, .msg_time_send {
   position: relative;
   display: block;
-  margin-top: 5px;
-  color: rgba(255, 255, 255, 0.5);
+  margin-top: 8px;
   font-size: 10px;
-  left: auto;
-  bottom: auto;
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .msg_time_send {
-  position: relative;
-  display: block;
-  margin-top: 5px;
   text-align: right;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 10px;
-  right: auto;
-  bottom: auto;
 }
 
 .msg_head {
@@ -374,4 +359,25 @@ body {
 
 .chat {
   min-width: 300px !important;
+}
+
+.message-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.received, .replied {
+  margin-bottom: 15px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ensure message containers don't overflow */
+.msg_card_body > div {
+  width: 100%;
 }
