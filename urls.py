@@ -20,14 +20,16 @@ from django.urls import path, include
 from app1 import views
 from django.conf import settings
 from django.conf.urls.static import static
+from app1 import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('signup/', views.SignupPage,name='signup'),
-    path('', views.LoginPage,name='login'),
-    path('home', views.HomePage,name='home'),
-    path('app1',include('app1.urls')),
-    path('upload/', views.upload_file, name='upload_file'),  # New endpoint
+    path('signup/', views.SignupPage, name='signup'),
+    path('', views.LoginPage, name='login'),
+    path('home/', views.HomePage, name='home'),
+    path('', include('app1.urls')),  # Changed to include all app1 URLs at root
+    path('upload/', views.upload_file, name='upload_file'),
+    
     path('password-reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('password-reset-confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
