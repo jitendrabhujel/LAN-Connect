@@ -3,13 +3,21 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Thread, Presence, CommunicationHistory, ChatMessage, ChatAttachment, Group, GroupMessage, GroupMember
+from .models import (
+    Thread, Presence, CommunicationHistory, 
+    ChatMessage, ChatAttachment, Group, GroupMember,
+    GroupMessage
+)
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.db.models import Q
+from django.db import transaction
+import os
+from django.conf import settings
 
 def SignupPage(request):
     if request.method == 'POST':
@@ -39,11 +47,11 @@ def SignupPage(request):
 def LoginPage(request):
     if request.method == 'POST':
         uname = request.POST.get('username')
-        passw = request.POST.get('password')
-        user = authenticate(request, username=uname, password=passw)
+        password = request.POST.get('password')
+        user = authenticate(request, username=uname, password=password)
         if user is not None:
             login(request, user)
-            messages.success(request, "Logged in successfully!")
+            messages.success(request, "Log In To Your Account!")
             return redirect('home')
         else:
             messages.error(request, "Invalid username or password!")
@@ -60,7 +68,7 @@ def HomePage(request):
             'user': user,
             'is_active': Presence.is_user_active(user)
         })
-    threads = Thread.objects.by_user(user=request.user).prefetch_related('chatmessage_thread').order_by('timestamp')
+    threads = Thread.objects.by_user(user=request.user).prefetch_related('chat_message_thread').order_by('timestamp')
     communicated_users = CommunicationHistory.objects.filter(user=request.user).order_by('-last_communicated')
     context = {
         'users_with_status': users_with_status,
@@ -73,8 +81,8 @@ def HomePage(request):
 
 def logoutUser(request):
     logout(request)
-    return render(request, 'signup.html')
-
+    messages.success(request, "Logged out successfully!")
+    return redirect('login')
 
 @login_required
 def messages_page(request):
@@ -86,7 +94,7 @@ def messages_page(request):
             'user': user,
             'is_active': Presence.is_user_active(user)
         })
-    threads = Thread.objects.by_user(user=request.user).prefetch_related('chatmessage_thread').order_by('timestamp')
+    threads = Thread.objects.by_user(user=request.user).prefetch_related('chat_message_thread').order_by('timestamp')
     communicated_users = CommunicationHistory.objects.filter(user=request.user).order_by('-last_communicated')
     context = {
         'users_with_status': users_with_status,
@@ -106,10 +114,40 @@ def upload_file(request):
     if request.method == 'POST' and request.FILES:
         files = request.FILES.getlist('files')
         attachment_urls = []
+        attachment_names = {}
+        
         for file in files:
-            file_path = default_storage.save(file.name, file)
-            attachment_urls.append(default_storage.url(file_path))
-        return JsonResponse({'attachment_urls': attachment_urls})
+            # Generate a unique filename to prevent overwrites
+            file_name = f"{file.name.split('.')[0]}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{file.name.split('.')[-1]}"
+            
+            # Save file in the appropriate directory based on file type
+            file_ext = file.name.split('.')[-1].lower()
+            
+            # Determine subdirectory based on file type
+            if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif']:
+                sub_dir = 'images'
+            elif file_ext in ['mp4', 'webm', 'ogg']:
+                sub_dir = 'videos'
+            else:
+                sub_dir = 'documents'
+            
+            # Create subdirectory if it doesn't exist
+            save_dir = f'chat_attachments/{sub_dir}'
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, save_dir), exist_ok=True)
+            
+            # Save the file
+            file_path = os.path.join(save_dir, file_name)
+            saved_path = default_storage.save(file_path, file)
+            file_url = default_storage.url(saved_path)
+            
+            # Store the file URL and original name
+            attachment_urls.append(file_url)
+            attachment_names[file_url] = file.name
+            
+        return JsonResponse({
+            'attachment_urls': attachment_urls,
+            'attachment_names': attachment_names
+        })
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
@@ -124,52 +162,62 @@ def fetch_chat_history(request):
         current_user = User.objects.get(id=current_user_id)
         other_user = User.objects.get(id=other_user_id)
 
-        # Find the thread between the two users
+        # Find thread between users (in either direction)
         thread = Thread.objects.filter(
-            (Q(first_person=current_user) & Q(second_person=other_user)) |
-            (Q(first_person=other_user) & Q(second_person=current_user))
+            (Q(first_person=current_user, second_person=other_user) |
+            Q(first_person=other_user, second_person=current_user))
         ).first()
 
-        messages = []
-        thread_id = None
-        
-        if thread:
-            thread_id = thread.id
-            chat_messages = ChatMessage.get_messages_within_24h(thread)
-            
-            for msg in chat_messages:
-                attachments = ChatAttachment.objects.filter(chat_message=msg)
-                attachment_urls = [attachment.file.url for attachment in attachments]
-                messages.append({
-                    'message': msg.message,
-                    'sent_by': str(msg.user.id),
-                    'timestamp': msg.timestamp.isoformat(),
-                    'attachment_urls': attachment_urls,
-                })
-        else:
-            # Create new thread if it doesn't exist
+        # If no thread exists, create one with consistent ordering
+        if not thread:
             thread = Thread.objects.create(
-                first_person=current_user if current_user.id < other_user.id else other_user,
-                second_person=other_user if current_user.id < other_user.id else current_user
+                first_person=min(current_user, other_user, key=lambda x: x.id),
+                second_person=max(current_user, other_user, key=lambda x: x.id)
             )
-            thread_id = thread.id
+
+        # Record communication history for both users
+        CommunicationHistory.record_communication(current_user, other_user)
+        CommunicationHistory.record_communication(other_user, current_user)
+
+        # Get messages from the last 24 hours
+        chat_messages = ChatMessage.get_messages_within_24h(thread)
+        messages = []
+        
+        for msg in chat_messages:
+            # Get all attachments for this message
+            attachments = ChatAttachment.objects.filter(chat_message=msg)
+            attachment_urls = [attachment.file.url for attachment in attachments]
+            
+            messages.append({
+                'message': msg.message,
+                'sent_by': str(msg.user.id),
+                'send_to': str(other_user.id if msg.user.id == current_user.id else current_user.id),
+                'attachment_urls': attachment_urls,
+                'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'thread_id': str(thread.id)
+            })
+
+        # Clean up old messages
+        ChatMessage.cleanup_old_messages()
+
+        # Update thread timestamp
+        thread.updated = timezone.now()
+        thread.save()
 
         return JsonResponse({
-            'thread_id': thread_id,
+            'success': True,
+            'thread_id': str(thread.id),
             'messages': messages,
-            'success': True
+            'other_user': {
+                'id': other_user.id,
+                'username': other_user.username,
+                'is_online': Presence.is_user_active(other_user)
+            }
         })
     except User.DoesNotExist:
-        return JsonResponse({
-            'error': 'User not found',
-            'success': False
-        }, status=404)
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
     except Exception as e:
-        print(f"Error in fetch_chat_history: {str(e)}")
-        return JsonResponse({
-            'error': str(e),
-            'success': False
-        }, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 def fetch_unread_counts(request):
@@ -225,40 +273,56 @@ def fetch_unread_counts(request):
 def create_group(request):
     if request.method == 'POST':
         try:
-            name = request.POST.get('name')
-            description = request.POST.get('description')
-            members = json.loads(request.POST.get('members', '[]'))
+            with transaction.atomic():
+                name = request.POST.get('name')
+                description = request.POST.get('description', '')  # Get description from POST data
+                members = json.loads(request.POST.get('members', '[]'))
 
-            if not name or not members:
-                return JsonResponse({'success': False, 'error': 'Missing required fields'})
+                if not name:
+                    return JsonResponse({'success': False, 'error': 'Group name is required'})
 
-            # Create the group
-            group = Group.objects.create(
-                name=name,
-                description=description,
-                created_by=request.user
-            )
+                if not members:
+                    return JsonResponse({'success': False, 'error': 'At least one member is required'})
 
-            # Add members and create GroupMember entries
-            for member_id in members:
-                user = User.objects.get(id=member_id)
-                GroupMember.objects.create(
-                    group=group,
-                    user=user,
-                    is_admin=user == request.user  # Make the creator an admin
+                # Check if a group with this name already exists
+                if Group.objects.filter(name=name).exists():
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'A group with this name already exists'
+                    })
+
+                # Create the group with creator_id
+                group = Group.objects.create(
+                    name=name,
+                    description=description,
+                    creator_id=request.user.id  # Use creator_id instead of created_by
                 )
-            
-            # Add all members to the group's ManyToManyField
-            group.members.add(*User.objects.filter(id__in=members))
 
-            return JsonResponse({
-                'success': True,
-                'group_id': group.id,
-                'name': group.name
-            })
+                # Add members to the group
+                for member_id in members:
+                    try:
+                        user = User.objects.get(id=member_id)
+                        GroupMember.objects.create(
+                            group=group,
+                            user=user,
+                            is_admin=user == request.user
+                        )
+                    except User.DoesNotExist:
+                        continue
+
+                return JsonResponse({
+                    'success': True,
+                    'group_id': group.id,
+                    'message': 'Group created successfully'
+                })
+
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
+            print(f"Error creating group: {str(e)}")  # Debugging line
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 @login_required
@@ -414,3 +478,73 @@ def add_group_members(request, group_id):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@login_required
+def user_status(request):
+    try:
+        # Get all users except the current user
+        users = User.objects.exclude(id=request.user.id)
+        users_data = []
+        
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'username': user.username,
+                'is_online': Presence.is_user_active(user)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'users': users_data
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+def get_group_chat(request, group_id):
+    try:
+        group = Group.objects.get(id=group_id)
+        
+        # Check if user is a member of the group
+        if not group.members.filter(id=request.user.id).exists():
+            return JsonResponse({'error': 'Not a member of this group'}, status=403)
+        
+        # Get all messages for this group
+        messages = GroupMessage.objects.filter(group=group).order_by('created_at')
+        messages_data = []
+        
+        for msg in messages:
+            messages_data.append({
+                'message': msg.message,
+                'sent_by': msg.sender.id,
+                'sender_name': msg.sender.username,
+                'attachment_urls': msg.attachment_urls,
+                'attachment_names': msg.attachment_names,
+                'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        # Get group members
+        members = []
+        for member in GroupMember.objects.filter(group=group):
+            members.append({
+                'id': member.user.id,
+                'username': member.user.username,
+                'is_admin': member.is_admin
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'group_id': group_id,
+            'group_name': group.name,
+            'description': group.description,
+            'messages': messages_data,
+            'members': members,
+            'is_admin': GroupMember.objects.filter(group=group, user=request.user, is_admin=True).exists()
+        })
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Group not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
