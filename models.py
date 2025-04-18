@@ -3,19 +3,24 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 import time
 from django.utils import timezone
-from django.core.files.storage import default_storage
-
-
+from datetime import timedelta
 User = get_user_model()
 
 class Presence(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='presence')
-    channel_name = models.CharField(max_length=255, unique=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    channel_name = models.CharField(max_length=255)
     last_seen = models.DateTimeField(auto_now=True)
 
     @classmethod
     def update_presence(cls, user, channel_name):
-        cls.objects.update_or_create(user=user, defaults={'channel_name': channel_name})
+        presence, created = cls.objects.get_or_create(
+            user=user,
+            channel_name=channel_name,
+            defaults={'last_seen': timezone.now()}
+        )
+        if not created:
+            presence.last_seen = timezone.now()
+            presence.save()
 
     @classmethod
     def remove_presence(cls, channel_name):
@@ -30,10 +35,11 @@ class Presence(models.Model):
 
     @classmethod
     def is_user_active(cls, user):
-        from django.utils import timezone
-        from datetime import timedelta
-        threshold = timezone.now() - timedelta(minutes=5)
-        return cls.objects.filter(user=user, last_seen__gte=threshold).exists()
+        cutoff = timezone.now() - timedelta(minutes=1)
+        return cls.objects.filter(
+            user=user,
+            last_seen__gte=cutoff
+        ).exists()
 
 class CommunicationHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='communication_history')
@@ -72,7 +78,7 @@ class Thread(models.Model):
         unique_together = ['first_person', 'second_person']
 
 class ChatMessage(models.Model):
-    thread = models.ForeignKey(Thread, null=True, blank=True, on_delete=models.CASCADE, related_name='chatmessage_thread')
+    thread = models.ForeignKey(Thread, null=True, blank=True, on_delete=models.CASCADE, related_name='chat_message_thread')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -85,44 +91,104 @@ class ChatMessage(models.Model):
             timestamp__gte=twenty_four_hours_ago
         ).order_by('timestamp')
 
+    @classmethod
+    def cleanup_old_messages(cls):
+        twenty_four_hours_ago = timezone.now() - timezone.timedelta(hours=24)
+        # First delete attachments of old messages
+        old_messages = cls.objects.filter(timestamp__lt=twenty_four_hours_ago)
+        ChatAttachment.objects.filter(chat_message__in=old_messages).delete()
+        # Then delete the messages themselves
+        old_messages.delete()
+
 class ChatAttachment(models.Model):
     chat_message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to='chat_attachments/')
 
-class Group(models.Model):
+class ChatRoom(models.Model):
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_groups')
-    members = models.ManyToManyField(User, related_name='group_memberships')
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_rooms')
+    members = models.ManyToManyField(User, related_name='chat_rooms')
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    is_group = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
 
-class GroupMessage(models.Model):
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.TextField()
-    attachment_urls = models.JSONField(default=list)
-    attachment_names = models.JSONField(default=dict)
-    created_at = models.DateTimeField(auto_now_add=True)
+class Message(models.Model):
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ['timestamp']
 
     def __str__(self):
-        return f'{self.sender.username} -> {self.group.name}: {self.message[:50]}'
+        return f'{self.sender.username}: {self.content[:50]}'
+
+class FileAttachment(models.Model):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='chat_attachments/')
+    file_name = models.CharField(max_length=255)
+    file_type = models.CharField(max_length=100)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.file_name} ({self.message.sender.username})'
+
+class UserStatus(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='status')
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    channel_name = models.CharField(max_length=255, null=True, blank=True)
+
+    @classmethod
+    def update_status(cls, user, is_online, channel_name=None):
+        status, created = cls.objects.get_or_create(user=user)
+        status.is_online = is_online
+        if is_online:
+            status.last_seen = timezone.now()
+        if channel_name:
+            status.channel_name = channel_name
+        status.save()
+
+    def __str__(self):
+        return f'{self.user.username} - {"Online" if self.is_online else "Offline"}'
+
+class Group(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_groups')
+    members = models.ManyToManyField(User, through='GroupMember')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
 
 class GroupMember(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_admin = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
-    last_read = models.DateTimeField(default=timezone.now)
+    last_read = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('group', 'user')
 
     def __str__(self):
-        return f'{self.user.username} in {self.group.name}'
+        return f"{self.user.username} in {self.group.name}"
+
+class GroupMessage(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    attachment_urls = models.JSONField(default=list, blank=True)
+    attachment_names = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.sender.username} in {self.group.name}: {self.message[:50]}"
