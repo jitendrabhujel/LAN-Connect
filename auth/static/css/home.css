@@ -17,12 +17,15 @@ body {
 }
 
 .notification {
+  color: #4cd137 !important;
   font-weight: bold;
-  animation: blink 1s infinite;
+  animation: blink 1.5s infinite;
 }
 
 @keyframes blink {
-  50% { opacity: 0; }
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 .logout-btn {
@@ -246,6 +249,11 @@ body {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 0;
+  transition: all 0.3s ease;
+}
+
+.user_info p strong {
+  color: #4cd137;
 }
 
 /* Fixed message container styles to prevent overflow */
@@ -379,5 +387,44 @@ body {
 
 /* Ensure message containers don't overflow */
 .msg_card_body > div {
+  width: 100%;
+}
+
+.message-attachment {
+  max-width: 300px;
+  margin: 5px 0;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.message-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.message-video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block; /* Prevents extra space below video */
+}
+
+.message-video source {
+  max-width: 100%;
+}
+
+/* Ensure messages don't overflow */
+.msg_cotainer, .msg_cotainer_send {
+  max-width: 80%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure attachment container doesn't overflow */
+.message-attachment {
+  max-width: 300px;
   width: 100%;
 }
