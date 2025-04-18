@@ -1,0 +1,594 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LAN Connect</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.min.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <div class="header-bar">
+        <h3>Logged in as: {{ user.username }}</h3>
+        <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+    </div>
+    <input type="hidden" id="logged-in-user" value="{{ user.id }}">
+    {% endif %}
+
+    <div class="container-fluid h-100">
+        <div class="row justify-content-center h-100">
+            <!-- Users Section (Left) -->
+            <div class="col-md-4 col-xl-3 chat h-100">
+                <div class="card mb-sm-3 mb-md-0 contacts_card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="input-group">
+                                <input type="text" placeholder="Search..." name="" class="form-control search">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text search_btn"><i class="fas fa-search"></i></span>
+                                </div>
+                            </div>
+                            <button class="btn btn-link p-0" id="create-group-btn" title="Create New Group">
+                                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xNyAyMXYtMmE0IDQgMCAwIDAtNC00SDVhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iOSIgY3k9IjciIHI9IjQiPjwvY2lyY2xlPjxwYXRoIGQ9Ik0yMyAyMXYtMmE0IDQgMCAwIDAtMy0zLjg3Ij48L3BhdGg+PHBhdGggZD0iTTE2IDMuMTNhNCA0IDAgMCAxIDAgNy43NSI+PC9wYXRoPjwvc3ZnPg==" 
+                                    alt="Create Group" class="group-icon" style="width: 30px; height: 30px; filter: invert(1);">
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body contacts_body h-100">
+                        <ul class="contacts">
+                            {% for user_status in users_with_status %}
+                            <li class="contact-li {% if forloop.first and Threads|length == 0 %}active{% endif %}" user-id="{{ user_status.user.id }}" style="cursor: pointer;">
+                                <div class="d-flex bd-highlight">
+                                    <div class="img_cont">
+                                        <img src="https://static.turbosquid.com/Preview/001292/481/WV/_D.jpg" class="rounded-circle user_img">
+                                        <span class="online_icon {% if user_status.is_active %}online{% else %}offline{% endif %}"></span>
+                                    </div>
+                                    <div class="user_info">
+                                        <span>{{ user_status.user.username }}</span>
+                                        <p>{{ user_status.user.username }} is {% if user_status.is_active %}online{% else %}offline{% endif %}</p>
+                                    </div>
+                                </div>
+                            </li>
+                            {% empty %}
+                            <li>No users available</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="card-footer"></div>
+                </div>
+            </div>
+            <!-- Messages Section (Right) -->
+            <div class="col-md-8 col-xl-9 chat h-100">
+                <div class="card h-100 message-card">
+                    <!-- Single message wrapper for all users -->
+                    <div class="messages-wrapper is_active" id="message-wrapper" chat-id="chat_new" other-user-id="">
+                        <div class="card-header msg_head">
+                            <div class="d-flex bd-highlight">
+                                <div class="img_cont">
+                                    <img src="https://static.turbosquid.com/Preview/001292/481/WV/_D.jpg" class="rounded-circle user_img">
+                                    <span class="online_icon"></span>
+                                </div>
+                                <div class="user_info">
+                                    <span>Select a user to start chatting</span>
+                                    <p>0 messages</p>
+                                </div>
+                                <div class="video_call_btn">
+                                    <button class="btn btn-link" id="start-video-call" style="display: none;">
+                                        <i class="fas fa-video"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body msg_card_body">
+                            <!-- Messages will be appended here dynamically -->
+                        </div>
+                        <div class="card-footer message-footer">
+                            <form id="send-message-form" enctype="multipart/form-data">
+                                <div class="input-group">
+                                    <div class="input-group-append">
+                                        <label for="file-input" class="input-group-text attach_btn"><i class="fas fa-paperclip"></i></label>
+                                        <input type="file" id="file-input" style="display: none;" multiple>
+                                    </div>
+                                    <input type="text" name="message" id="input-message" class="form-control type_msg" placeholder="Type your message...">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-secondary send_btn" type="submit">
+                                            <span class="input-group-text send_btn">
+                                                <i class="fas fa-location-arrow"></i>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var currentTime = new Date().toLocaleString();
+    </script>
+    <script src="{% static 'js/home.js' %}"></script>
+    <script src="{% static 'js/videocall.js' %}"></script>
+
+    <!-- Update Group Creation Modal -->
+    <div class="modal fade" id="createGroupModal" tabindex="-1" role="dialog" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createGroupModalLabel">Create New Group</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <!-- Add this input field in your create group modal -->
+<div class="form-group">
+    <label for="group-description">Group Description</label>
+    <textarea class="form-control" id="group-description" rows="3" placeholder="Enter group description (optional)"></textarea>
+</div>
+                <div class="modal-body">
+                    <form id="createGroupForm">
+                        <div class="form-group">
+                            <label for="groupName">Group Name</label>
+                            <input type="text" class="form-control" id="groupName" required minlength="3" maxlength="50" placeholder="Enter group name (3-50 characters)">
+                        </div>
+                        <div class="form-group">
+                            <label>Select Members</label>
+                            <div class="member-selection">
+                                <!-- Members will be populated dynamically -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="createGroupSubmit">Create Group</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Call Modal -->
+    <div class="modal fade" id="videoCallModal" tabindex="-1" role="dialog" aria-labelledby="videoCallModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="videoCallModalLabel">Video Call</h5>
+                    <div class="call-controls">
+                        <button class="btn btn-sm btn-dark mx-1" id="toggleMute">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="btn btn-sm btn-dark mx-1" id="toggleVideo">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger mx-1" id="endCall">
+                            <i class="fas fa-phone-slash"></i>
+                        </button>
+                    </div>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="video-grid">
+                        <div class="video-container">
+                            <video id="localVideo" autoplay playsinline muted></video>
+                            <div class="video-label">You</div>
+                        </div>
+                        <div class="video-container">
+                            <video id="remoteVideo" autoplay playsinline></video>
+                            <div class="video-label">Remote User</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Call Notification -->
+    <div class="call-notification" id="callNotification" style="display: none;">
+        <div class="call-notification-content">
+            <div class="caller-info">
+                <img src="/static/img/default-avatar.png" class="caller-avatar" id="callerAvatar">
+                <div class="caller-details">
+                    <h4 id="callerName">Incoming Call</h4>
+                    <p>is calling you...</p>
+                </div>
+            </div>
+            <div class="call-actions">
+                <button class="btn-accept" id="acceptCall">
+                    <i class="fas fa-phone"></i> Accept
+                </button>
+                <button class="btn-reject" id="rejectCall">
+                    <i class="fas fa-phone-slash"></i> Reject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permission Request Modal -->
+    <div class="modal fade" id="permissionModal" tabindex="-1" aria-labelledby="permissionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background: #2c2c2c; color: white; border: 1px solid rgba(255,255,255,0.1);">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="permissionModalLabel">Camera & Microphone Access</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="permission-icons mb-4">
+                        <i class="fas fa-video fa-2x mx-3"></i>
+                        <i class="fas fa-microphone fa-2x mx-3"></i>
+                    </div>
+                    <p class="mb-3">This app needs access to your camera and microphone for video calls.</p>
+                    <div id="permissionStatus" class="mb-3">
+                        <div class="d-flex justify-content-center align-items-center mb-2">
+                            <div class="permission-item">
+                                <i class="fas fa-video me-2"></i> Camera: 
+                                <span class="status-badge" id="cameraStatus">Checking...</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center align-items-center">
+                            <div class="permission-item">
+                                <i class="fas fa-microphone me-2"></i> Microphone: 
+                                <span class="status-badge" id="micStatus">Checking...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="permissionInstructions" class="text-start d-none">
+                        <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Permission needed:</p>
+                        <ol class="ps-3">
+                            <li>Click the camera icon <i class="fas fa-camera text-muted"></i> in your browser's address bar</li>
+                            <li>Select "Allow" for both camera and microphone</li>
+                            <li>Click "Try Again" below</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="retryPermissions">Try Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .group-icon {
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+
+    .group-icon:hover {
+        transform: scale(1.1);
+    }
+
+    .member-selection {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        margin-top: 10px;
+    }
+
+    .member-selection .custom-checkbox {
+        margin-bottom: 8px;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+
+    .member-selection .custom-checkbox:hover {
+        background-color: #f8f9fa;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .modal-header {
+        background-color: #17a2b8;
+        color: white;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+        padding: 1rem;
+    }
+
+    .modal-header .close {
+        color: white;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+
+    .modal-header .close:hover {
+        opacity: 1;
+    }
+
+    .btn-primary { 
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        background-color: #138496;
+        border-color: #138496;
+        transform: translateY(-1px);
+    }
+
+    .form-control:focus {
+        border-color: #17a2b8;
+        box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+    }
+
+    .custom-checkbox .custom-control-input:checked ~ .custom-control-label::before {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+    }
+
+    .video_call_btn {
+        margin-left: auto;
+        padding: 10px;
+    }
+
+    .video_call_btn button {
+        color: #fff;
+        font-size: 20px;
+        padding: 5px 10px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .video_call_btn button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    .video-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 20px;
+    }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        padding-top: 75%; /* 4:3 Aspect Ratio */
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .video-container video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .video-label {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .call-controls {
+        display: flex;
+        gap: 10px;
+    }
+
+    .call-controls button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .call-controls button i {
+        font-size: 16px;
+    }
+
+    #videoCallModal .modal-content {
+        background: #2f3136;
+        color: white;
+    }
+
+    #videoCallModal .modal-header {
+        border-bottom: 1px solid #40444b;
+    }
+
+    #videoCallModal .close {
+        color: white;
+    }
+
+    /* Call Notification Styles */
+    .call-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .call-notification-content {
+        background: #2f3136;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        width: 300px;
+        color: white;
+    }
+
+    .caller-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .caller-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 15px;
+        object-fit: cover;
+    }
+
+    .caller-details h4 {
+        margin: 0;
+        font-size: 18px;
+        color: #fff;
+    }
+
+    .caller-details p {
+        margin: 5px 0 0;
+        font-size: 14px;
+        color: #b9bbbe;
+    }
+
+    .call-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .call-actions button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .call-actions button:hover {
+        transform: translateY(-1px);
+    }
+
+    .call-actions button:active {
+        transform: translateY(1px);
+    }
+
+    .btn-accept {
+        background: #3ba55c;
+        color: white;
+    }
+
+    .btn-accept:hover {
+        background: #2d8147;
+    }
+
+    .btn-reject {
+        background: #ed4245;
+        color: white;
+    }
+
+    .btn-reject:hover {
+        background: #c03537;
+    }
+
+    /* Call Status Message Styles */
+    .call-status-message {
+        display: inline-block;
+        background: rgba(47, 49, 54, 0.6);
+        color: #ffffff;
+        padding: 8px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+        margin: 10px 0;
+    }
+
+    .call-status-message .call-time {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 4px;
+    }
+
+    .permission-icons i {
+        color: #ffc107;
+    }
+    
+    .permission-item {
+        font-size: 1.1rem;
+        margin: 10px 0;
+    }
+    
+    .status-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        margin-left: 5px;
+    }
+    
+    .status-checking {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .status-granted {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .status-denied {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    #permissionInstructions {
+        background-color: rgba(255, 193, 7, 0.1);
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+    
+    #permissionInstructions ol {
+        margin-bottom: 0;
+    }
+    
+    .permission-alert {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        min-width: 300px;
+        background-color: #2c2c2c;
+        color: white;
+        border: 1px solid #ffc107;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    </style>
+</body>
+</html>
