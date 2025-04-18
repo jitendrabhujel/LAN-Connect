@@ -1,21 +1,35 @@
-from django.urls import path
-from . import views
+"""
+URL configuration for auth project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/5.1/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+from django.contrib.auth import views as auth_views
+from django.contrib import admin
+from django.urls import path, include
+from app1 import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
-    path('', views.HomePage, name='home'),
-    path('signup/', views.SignupPage, name='signup'),
-    path('login/', views.LoginPage, name='login'),
-    path('logout/', views.logoutUser, name='logout'),
-    path('messages/', views.messages_page, name='messages'),
-    path('video_call/', views.video_call, name='video_call'),
-    path('upload/', views.upload_file, name='upload_file'),
-    path('fetch_chat_history/', views.fetch_chat_history, name='fetch_chat_history'),
-    path('fetch_unread_counts/', views.fetch_unread_counts, name='fetch_unread_counts'),
-    path('create_group/', views.create_group, name='create_group'),
-    path('fetch_group_chat_history/', views.fetch_group_chat_history, name='fetch_group_chat_history'),
-    path('get_group_chat/<int:group_id>/', views.get_group_chat, name='get_group_chat'),
-    path('get_group_info/<int:group_id>/', views.get_group_info, name='get_group_info'),
-    path('manage_group_members/<int:group_id>/', views.manage_group_members, name='manage_group_members'),
-    path('add_group_members/<int:group_id>/', views.add_group_members, name='add_group_members'),
-    path('user_status/', views.user_status, name='user_status'),
-]
+    path('admin/', admin.site.urls),
+    path('signup/', views.SignupPage,name='signup'),
+    path('login/', views.LoginPage,name='login'),
+    path('home/', views.HomePage,name='home'),
+    path('app1/',include('app1.urls')),
+    path('upload/', views.upload_file, name='upload_file'),  # New endpoint
+    path('password-reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
+    path('password-reset-confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('password-reset-complete/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
